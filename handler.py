@@ -1,10 +1,18 @@
-# handler.py XTTS
 import runpod
 from TTS.api import TTS
 import numpy as np
-import io, wave
+import io
+import wave
+import re
 
 tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=True)
+
+def parse_emotion(text):
+    if "risa" in text.lower():
+        return text + " ja ja ja :)", 1.0  # Alegre
+    elif "susurro" in text.lower():
+        return "[bajo] " + text + " [bajo]", 0.3  # Temperature bajo
+    return text, 0.7
 
 def handler(event):
     input_data = event["input"]
@@ -12,18 +20,11 @@ def handler(event):
         return {"status": "warm"}
     
     text = input_data["text"]
-    speaker = "/vol/audio_ref_es.wav"
+    text, temp = parse_emotion(text)
     
-    wav = tts.tts(text=text, speaker_wav=speaker, language="es")
+    wav = tts.tts(text=text, speaker_wav="/vol/audio_ref_es.wav", 
+                  language="es", temperature=temp)
+    
     audio_np = np.array(wav).astype(np.float32)
-    
     buffer = io.BytesIO()
-    with wave.open(buffer, 'wb') as f:
-        f.setnchannels(1)
-        f.setsampwidth(2)
-        f.setframerate(24000)
-        f.writeframes((audio_np * 32767).astype(np.int16).tobytes())
-    
-    return {"audio": buffer.getvalue().hex(), "format": "wav"}
-
-runpod.serverless.start({"handler": handler})
+    with wave.open(buffer
