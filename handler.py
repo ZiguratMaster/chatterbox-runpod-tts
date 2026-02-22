@@ -1,34 +1,20 @@
 import runpod
-import torch
-import torchaudio
-from chatterbox.tts import ChatterboxTTS  # Multilingual
-import numpy as np
-import io
-import wave
-
-# Carga modelo al inicio (warm)
-model = ChatterboxTTS.from_pretrained("mtl_tts")  # Multilingual para ES-ES
-ref_path = "/vol/audio_ref_es.wav"
-model.set_voice(ref_path)  # Clon voz
+import time
 
 def handler(event):
+    print("=== HANDLER INICIADO ===")
     input_data = event["input"]
+    
     if input_data.get("ping"):
-        return {"status": "warm", "uptime": 1}
+        return {"status": "warm", "timestamp": time.time()}
     
-    text = input_data["text"]
-    audio = model.generate(text, lang="es")  # Genera español
+    text = input_data.get("text", "No text")
+    print(f"TTS request: {text}")
     
-    # Convierte a WAV bytes
-    audio_np = np.array(audio).astype(np.float32)
-    buffer = io.BytesIO()
-    with wave.open(buffer, 'wb') as wav_file:
-        wav_file.setnchannels(1)
-        wav_file.setsampwidth(2)
-        wav_file.setframerate(24000)
-        wav_file.writeframes((audio_np * 32767).astype(np.int16).tobytes())
-    audio_bytes = buffer.getvalue()
-    
-    return {"audio": audio_bytes.hex(), "format": "wav"}  # Hex para JSON
+    # Simula TTS (devuelve dummy audio)
+    audio_dummy = [0.0] * 48000  # 2s silencio 24kHz
+    print("=== TTS SIMULADO OK ===")
+    return {"audio": [float(x) for x in audio_dummy], "format": "wav", "text": text}
 
 runpod.serverless.start({"handler": handler})
+print("=== SERVERLESS STARTED ===")
