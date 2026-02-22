@@ -1,0 +1,12 @@
+chatterbox-tts
+torch
+torchaudio
+runpod
+librosa
+soundfile
+pydub
+safetensors
+numpy
+scipy
+requests
+tqdm
