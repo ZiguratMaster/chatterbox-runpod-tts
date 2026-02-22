@@ -1,9 +1,8 @@
 runpod
-librosa
+chatterbox-tts
+librosa==0.10.1
 soundfile
-pydub
 numpy
 scipy
-requests
+pydub
 tqdm
-chatterbox-tts==0.1.0
