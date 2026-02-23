@@ -4,8 +4,11 @@ FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /workspace
 
-# Instalar dependencias de sistema necesarias para audio y descargas
+# Instalar Python 3.11 y dependencias de sistema
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-pip \
+    python3.11-venv \
     ffmpeg \
     libsndfile1 \
     curl \
@@ -13,35 +16,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
-# Instalar Miniconda para gestionar Python 3.11 limpio
-RUN curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh \
- && bash /tmp/miniconda.sh -b -p /opt/conda \
- && rm /tmp/miniconda.sh
-ENV PATH=/opt/conda/bin:$PATH
+# Crear symlink para python -> python3.11
+RUN ln -s /usr/bin/python3.11 /usr/bin/python \
+ && ln -s /usr/bin/python3.11 /usr/bin/python3 \
+ && ln -s /usr/bin/pip3.11 /usr/bin/pip
 
-# Crear entorno con Python 3.11
-RUN conda create -y -n chatterbox python=3.11 && conda clean -afy
+# Actualizar pip
+RUN pip install --no-cache-dir --upgrade pip
 
-# Configurar shell para usar el entorno conda por defecto
-SHELL ["bash", "-lc"]
-
-# --- CAMBIO 1: Copiar requirements desde la raíz ---
+# Copiar e instalar requirements desde la raíz
 COPY requirements.txt /tmp/requirements.txt
-RUN conda activate chatterbox \
- && pip install --no-cache-dir -U pip \
- && pip install --no-cache-dir -r /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-# --- CAMBIO 2: Copiar el audio de referencia desde la raíz ---
-# Si el audio está suelto en el repo, lo copiamos directamente
+# Copiar audio de referencia (opcional, quítalo si da problemas)
 COPY audio_ref_es_corto.wav /input/referencia.wav
 ENV DEFAULT_AUDIO_PROMPT=/input/referencia.wav
 
-# --- CAMBIO 3: Copiar el handler desde la raíz al destino /src/ ---
-# Esto crea la carpeta /src en la imagen y mete el handler dentro
+# Copiar el handler desde la raíz
 COPY handler.py /src/handler.py
 
-# Configurar caché de modelos en el volumen de red de Runpod
+# Configurar caché de HuggingFace
 ENV HF_HOME=/workspace/.cache/huggingface
 
-# Comando de arranque: activa conda y lanza el handler que está en /src/
-CMD ["bash", "-lc", "conda activate chatterbox && python -u /src/handler.py"]
+# Comando de arranque
+CMD ["python", "-u", "/src/handler.py"]
