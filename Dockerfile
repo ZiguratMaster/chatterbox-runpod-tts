@@ -22,24 +22,26 @@ ENV PATH=/opt/conda/bin:$PATH
 # Crear entorno con Python 3.11
 RUN conda create -y -n chatterbox python=3.11 && conda clean -afy
 
-# Configurar shell para usar el entorno conda por defecto en los siguientes comandos
+# Configurar shell para usar el entorno conda por defecto
 SHELL ["bash", "-lc"]
 
-# Copiar e instalar requirements
-COPY builder/requirements.txt /tmp/requirements.txt
+# --- CAMBIO 1: Copiar requirements desde la raíz ---
+COPY requirements.txt /tmp/requirements.txt
 RUN conda activate chatterbox \
  && pip install --no-cache-dir -U pip \
  && pip install --no-cache-dir -r /tmp/requirements.txt
 
-# (OPCIONAL) Si tienes un audio local, descomenta estas lineas:
-COPY assets/audio_ref_es_corto.wav /input/referencia.wav
+# --- CAMBIO 2: Copiar el audio de referencia desde la raíz ---
+# Si el audio está suelto en el repo, lo copiamos directamente
+COPY audio_ref_es_corto.wav /input/referencia.wav
 ENV DEFAULT_AUDIO_PROMPT=/input/referencia.wav
 
-# Copiar el código fuente
-COPY src/ /src/
+# --- CAMBIO 3: Copiar el handler desde la raíz al destino /src/ ---
+# Esto crea la carpeta /src en la imagen y mete el handler dentro
+COPY handler.py /src/handler.py
 
-# Configurar caché de modelos en el volumen de red de Runpod (si existe)
+# Configurar caché de modelos en el volumen de red de Runpod
 ENV HF_HOME=/workspace/.cache/huggingface
 
-# Comando de arranque: activa conda y lanza el handler
+# Comando de arranque: activa conda y lanza el handler que está en /src/
 CMD ["bash", "-lc", "conda activate chatterbox && python -u /src/handler.py"]
