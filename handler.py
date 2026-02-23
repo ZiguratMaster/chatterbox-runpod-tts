@@ -1,23 +1,31 @@
 import runpod
 from TTS.api import TTS
-import numpy as np
 import io
+import numpy as np
 import wave
 
-tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=True)
+tts = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2", progress_bar=False, gpu=True)
 
 def handler(event):
-    input_data = event["input"]
-    if input_data.get("ping"):
-        return {"status": "warm"}
+    job_input = event['input']
     
-    text = input_data["text"]
-    speaker_wav = "/vol/audio_ref_es.wav"
+    if job_input.get('ping'):
+        return {'status': 'warm'}
     
-    # Genera
-    audio = tts.tts(text=text, speaker_wav=speaker_wav, language="es")
+    text = job_input['text']
     
-    # WAV bytes
-    audio_np = np.array(audio).astype(np.float32)
+    # XTTS clon
+    out = tts.tts(text=text, speaker_wav="/vol/audio_ref_es.wav", language='es')
+    
+    # WAV
+    audio_np = np.array(out).astype(np.float32)
     buffer = io.BytesIO()
-    with wave.open(buffer
+    with wave.open(buffer, 'wb') as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(24000)
+        wav_file.writeframes((audio_np * 32767).astype(np.int16).tobytes())
+    
+    return {'audio': buffer.getvalue().hex(), 'format': 'wav'}
+
+runpod.serverless.start({'handler': handler})
