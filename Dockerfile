@@ -1,18 +1,46 @@
-FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
+# Usamos CUDA 12.1 runtime (compatible con pytorch 2.1+)
+FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
 
-RUN apt-get update && apt-get install -y ffmpeg espeak-ng git python3-dev gcc g++ make && apt-get clean
+# Evitar preguntas durante la instalación
+ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /workspace
 
-RUN pip install --upgrade pip setuptools wheel
+# Instalar dependencias de sistema necesarias para audio y descargas
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libsndfile1 \
+    curl \
+    git \
+    ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 
-RUN pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
+# Instalar Miniconda para gestionar Python 3.11 limpio
+RUN curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh \
+ && bash /tmp/miniconda.sh -b -p /opt/conda \
+ && rm /tmp/miniconda.sh
+ENV PATH=/opt/conda/bin:$PATH
 
-# TTS con deps Rust
-RUN pip install --no-cache-dir espeak-ng==0.1.10
-RUN pip install --no-cache-dir TTS
+# Crear entorno con Python 3.11
+RUN conda create -y -n chatterbox python=3.11 && conda clean -afy
 
-RUN pip install --no-cache-dir runpod librosa soundfile pydub numpy
+# Configurar shell para usar el entorno conda por defecto en los siguientes comandos
+SHELL ["bash", "-lc"]
 
-COPY handler.py /handler.py
-COPY audio_ref_es.wav /vol/audio_ref_es.wav
+# Copiar e instalar requirements
+COPY builder/requirements.txt /tmp/requirements.txt
+RUN conda activate chatterbox \
+ && pip install --no-cache-dir -U pip \
+ && pip install --no-cache-dir -r /tmp/requirements.txt
 
-CMD ["python", "/handler.py"]
+# (OPCIONAL) Si tienes un audio local, descomenta estas lineas:
+COPY assets/audio_ref_es_corto.wav /input/referencia.wav
+ENV DEFAULT_AUDIO_PROMPT=/input/referencia.wav
+
+# Copiar el código fuente
+COPY src/ /src/
+
+# Configurar caché de modelos en el volumen de red de Runpod (si existe)
+ENV HF_HOME=/workspace/.cache/huggingface
+
+# Comando de arranque: activa conda y lanza el handler
+CMD ["bash", "-lc", "conda activate chatterbox && python -u /src/handler.py"]
