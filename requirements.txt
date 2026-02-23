@@ -1,5 +1,14 @@
 runpod~=1.7.6
+
+# PyTorch EXACTO para CUDA 12.1/12.2 (Chatterbox compatible)
 --extra-index-url https://download.pytorch.org/whl/cu121
-torch
-torchaudio
+torch==2.6.0
+torchaudio==2.6.0
+
+# Chatterbox TTS (última estable)
 chatterbox-tts
+
+# Dependencias extras
+numpy
+transformers
+tokenizers
