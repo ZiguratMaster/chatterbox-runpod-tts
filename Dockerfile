@@ -1,22 +1,19 @@
 FROM runpod/base:0.6.2-cuda12.2.0
 
-WORKDIR /workspace
+WORKDIR /app
 
 # Sistema
 RUN apt-get update && apt-get install -y ffmpeg libsndfile1 && rm -rf /var/lib/apt/lists/*
 
-# PyTorch ANTES de todo (crítico)
-RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install torch==2.4.1+cu121 torchaudio==2.4.1+cu121 --index-url https://download.pytorch.org/whl/cu121
+# Copiar todo el proyecto
+COPY . /app
 
-# Runpod + resto
-RUN python3 -m pip install runpod==1.7.6
+# Instalar con uv (recomendado por autores)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:$PATH"
 
-# Chatterbox DESPUÉS de PyTorch
-RUN python3 -m pip install chatterbox-tts transformers==4.44.2 tokenizers==0.20.1 safetensors numpy librosa
+RUN uv sync --frozen --no-dev
 
-COPY handler.py /src/handler.py
+EXPOSE 4123
 
-ENV HF_HOME=/workspace/.cache/huggingface
-
-CMD ["python3", "-u", "/src/handler.py"]
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "4123"]
