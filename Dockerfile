@@ -1,4 +1,3 @@
-# Usamos CUDA 12.1 runtime (compatible con pytorch 2.1+)
 FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
 
 # Evitar preguntas durante la instalación
