@@ -1,18 +1,16 @@
 runpod~=1.7.6
 
-# PyTorch EXACTO para Chatterbox (probado)
+# PyTorch para CUDA 12.2 (compatible con Runpod base)
 --extra-index-url https://download.pytorch.org/whl/cu121
-torch==2.4.1+cu121
-torchaudio==2.4.1+cu121
+torch>=2.4.0
+torchaudio>=2.4.0
 
-# Chatterbox + dependencias críticas
+# Chatterbox
 chatterbox-tts
-transformers==4.44.2
-tokenizers==0.20.1
-safetensors==0.4.5
-numpy==1.26.4
-librosa==0.10.2
 
-# Audio
-omegaconf==2.3.0
-resampy==0.4.3
+# Dependencias mínimas
+numpy
+transformers
+tokenizers
+safetensors
+librosa
