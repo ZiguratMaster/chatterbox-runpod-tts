@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Chatterbox TTS con VOZ CLONADA ✓
+# Chatterbox TTS + VOICE CLONING OFICIAL ✓
 
 import os
 import runpod
@@ -13,10 +13,10 @@ from io import BytesIO
 from typing import Dict, Any
 from pathlib import Path
 
-print("🚀 Chatterbox TTS + VOICE CLONING")
+print("🚀 Chatterbox TTS con audio_prompt_path")
 
 MODEL_PATH = os.getenv("MODEL_PATH", "/runpod-volume/chatterbox")
-VOICE_SAMPLE = Path("/app/voice-samplet.wav")  # Tu sample aquí
+VOICE_SAMPLE = Path("/app/voice-samplet.wav")
 VOICE_TARGET = Path(f"{MODEL_PATH}/voice-sample.wav")
 
 model = None
@@ -25,12 +25,12 @@ def setup_voice():
     if VOICE_SAMPLE.exists() and not VOICE_TARGET.exists():
         VOICE_TARGET.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(VOICE_SAMPLE, VOICE_TARGET)
-        print(f"✅ Voz copiada: {VOICE_TARGET}")
+        print(f"✅ Voz clonada: {VOICE_TARGET}")
 
 def load_model():
     global model
     if model is None:
-        print("🤖 Cargando Chatterbox...")
+        print("🤖 Cargando Chatterbox OFICIAL...")
         os.makedirs(MODEL_PATH, exist_ok=True)
         
         try:
@@ -52,7 +52,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         if not text:
             return {"error": "Sin texto"}
         
-        print(f"TTS clonado: {text[:40]}...")
+        print(f"🎤 TTS clonado: {text[:40]}...")
         load_model()
         
         if model is None:
@@ -61,41 +61,34 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
             t = np.linspace(0, 2, sr*2)
             audio = 0.3 * np.sin(2 * np.pi * 440 * t)
         else:
-            # ✅ CLONACIÓN: Carga reference_audio
-            ref_audio_path = str(VOICE_TARGET)
+            # ✅ CLONACIÓN CORRECTA: audio_prompt_path = PATH al archivo
             if VOICE_TARGET.exists():
-                # Carga el sample como array numpy
-                ref_audio, sr_ref = sf.read(ref_audio_path)
-                print(f"🔊 Usando voz clonada: {ref_audio_path} (SR: {sr_ref})")
-                
-                # Genera CON clonación (ajusta params según docs Chatterbox)
+                print(f"🔊 CLONANDO con: {VOICE_TARGET}")
                 audio = model.generate(
                     text=text,
-                    reference_audio=ref_audio,  # ¡CLAVE! Array del sample
-                    exaggeration=0.8,  # Emoción (0-2)
-                    cfg_weight=0.5,    # Creatividad
-                    temperature=0.7    # Variabilidad
+                    audio_prompt_path=str(VOICE_TARGET)  # ¡PARÁMETRO OFICIAL![web:32]
                 )
-                if torch.is_tensor(audio):
-                    audio = audio.cpu().numpy()
             else:
-                print("⚠️ Sin sample voz, usa default")
+                print("⚠️ Sin sample, voz DEFAULT")
                 audio = model.generate(text=text)
+            
+            if torch.is_tensor(audio):
+                audio = audio.cpu().numpy()
         
-        # Base64 output
+        # Base64 RunPod
         buffer = BytesIO()
         sf.write(buffer, audio.flatten() if audio.ndim > 1 else audio, 24000, format='WAV')
         audio_b64 = base64.b64encode(buffer.getvalue()).decode()
         
-        print("✅ AUDIO CLONADO LISTO!")
+        print("✅ AUDIO CLONADO GENERADO!")
         return {
             "output": [{"path": f"data:audio/wav;base64,{audio_b64}"}],
             "delay_time": 2000
         }
         
     except Exception as e:
-        print(f"❌ Error: {traceback.format_exc()}")
+        print(f"❌ {traceback.format_exc()}")
         return {"error": str(e)}
 
-print("✅ Handler con clonación ACTIVE")
+print("✅ Handler CLONACIÓN ACTIVE")
 runpod.serverless.start({"handler": handler})
