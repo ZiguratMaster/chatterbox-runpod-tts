@@ -1,12 +1,10 @@
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
-# Instala Python + compiladores + deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.11 \
     python3.11-dev \
-    python3.11-distutils \
     python3-pip \
-    build-essential \  # ← CLAVE para compilar
+    build-essential \
     ffmpeg \
     libsndfile1 \
     git \
@@ -16,7 +14,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY . /app/
 
-# pip install con compilación
 RUN python -m pip install --no-cache-dir \
     hf_transfer \
     --extra-index-url https://download.pytorch.org/whl/cu121 \
@@ -24,7 +21,7 @@ RUN python -m pip install --no-cache-dir \
     runpod \
     soundfile librosa numpy requests pydantic \
     huggingface_hub \
-    "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox.git"
+    "chatterbox-tts@git+https://github.com/resemble-ai/chatterbox.git"
 
 ENV HF_HUB_ENABLE_HF_TRANSFER=1
 ENV PYTHONUNBUFFERED=1
