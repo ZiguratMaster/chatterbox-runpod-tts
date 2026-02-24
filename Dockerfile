@@ -8,10 +8,13 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# Instala Torch compatible con CUDA 12.2 y chatterbox primero
+RUN pip install --no-cache-dir \
+    torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+
 COPY . /app
 
 RUN pip install --no-cache-dir \
-    torch==2.4.0 torchaudio==2.4.0 \
     runpod \
     soundfile librosa numpy requests pydantic \
     huggingface_hub \
