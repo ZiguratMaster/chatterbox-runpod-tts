@@ -8,19 +8,22 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Instala Torch compatible con CUDA 12.2 y chatterbox primero
+# Torch compatible CUDA 12.2 primero
 RUN pip install --no-cache-dir \
     torch torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 COPY . /app
 
+# FIX: Instala hf_transfer + deps
 RUN pip install --no-cache-dir \
+    hf_transfer \
     runpod \
     soundfile librosa numpy requests pydantic \
-    huggingface_hub \
+    "huggingface_hub[hf_transfer]" \
     "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox.git"
 
-ENV HF_HUB_ENABLE_HF_TRANSFER=0
+# Deshabilita solo si no quieres hf_transfer (pero mejor usarlo para velocidad)
+ENV HF_HUB_ENABLE_HF_TRANSFER=1
 
 EXPOSE 4123
 
