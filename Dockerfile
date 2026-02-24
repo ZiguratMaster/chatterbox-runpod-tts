@@ -1,11 +1,12 @@
-FROM nvidia/cuda:12.2.0-runtime-ubuntu22.04
+FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
 
-# Instala Python 3.11 + deps
+# Instala Python + compiladores + deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.11 \
     python3.11-dev \
     python3.11-distutils \
     python3-pip \
+    build-essential \  # ← CLAVE para compilar
     ffmpeg \
     libsndfile1 \
     git \
@@ -15,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY . /app/
 
-# Tu pip install (perfecto)
+# pip install con compilación
 RUN python -m pip install --no-cache-dir \
     hf_transfer \
     --extra-index-url https://download.pytorch.org/whl/cu121 \
