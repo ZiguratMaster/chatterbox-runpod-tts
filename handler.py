@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-# Chatterbox TTS Serverless + Voz Clonada Persistente
-# RunPod + Network Volume
-
 import os
 import runpod
 import torch
@@ -10,10 +7,11 @@ import soundfile as sf
 import shutil
 import time
 import traceback
-from typing import Optional, Dict, Any
-from chatterbox import ChatterboxMultilingualTTS
-import base64
-from io import BytesIO
+from typing import Dict, Any
+try:
+    from chatterbox.tts import ChatterboxTTS  # API correcta
+except ImportError:
+    from chatterbox import ChatterboxTTS
 
 print("🚀 Iniciando Chatterbox TTS + Voz Clonada...")
 
@@ -22,60 +20,48 @@ VOICE_SOURCE = "/app/voice-samplet.wav"
 VOICE_TARGET = f"{MODEL_PATH}/voice-sample.wav"
 
 model = None
-voice_embedding = None
 
 def setup_voice():
-    """Copia voz clonada a volumen persistente en primer inicio"""
-    global voice_embedding
-    
+    """Copia voz clonada a volumen persistente"""
     if os.path.exists(VOICE_SOURCE) and not os.path.exists(VOICE_TARGET):
-        print("📥 Copiando voz clonada a volumen persistente...")
+        print("📥 Copiando voz clonada...")
         os.makedirs(os.path.dirname(VOICE_TARGET), exist_ok=True)
         shutil.copy2(VOICE_SOURCE, VOICE_TARGET)
         print(f"✅ Voz copiada: {VOICE_TARGET}")
-    
-    if os.path.exists(VOICE_TARGET) and voice_embedding is None:
-        print("🔊 Cargando voice embedding...")
-        # Carga embedding para clonación (ajusta según Chatterbox API)
-        audio, sr = sf.read(VOICE_TARGET)
-        voice_embedding = model.extract_voice_embedding(audio, sr) if hasattr(model, 'extract_voice_embedding') else audio
-        print("✅ Voice embedding listo!")
 
 def load_model():
-    """Lazy load del modelo"""
     global model
     if model is None:
-        print("🤖 Cargando Chatterbox Multilingual TTS...")
+        print("🤖 Cargando Chatterbox TTS...")
         os.makedirs(MODEL_PATH, exist_ok=True)
-        model = ChatterboxMultilingualTTS.from_pretrained(device="cuda", cache_dir=MODEL_PATH)
+        
+        # FIX: API correcta sin cache_dir
+        model = ChatterboxTTS(
+            device="cuda" if torch.cuda.is_available() else "cpu",
+            model_dir=MODEL_PATH  # O elimina esta línea
+        )
         print("✅ Modelo cargado!")
         setup_voice()
 
 def handler(event: Dict[str, Any]) -> Dict[str, Any]:
-    global model, voice_embedding
+    global model
     
     try:
         input_data = event["input"]
         text = input_data.get("text", "")
-        language = input_data.get("language", "es")  # Español por defecto
         
         if not text.strip():
             return {"error": "Texto vacío"}
         
         load_model()
-        
         print(f"🎤 Generando TTS: {text[:50]}...")
         
-        # Genera audio con voz clonada
-        wav = model.generate(
-            text=text,
-            language_id=language,
-            audio_prompt_path=VOICE_TARGET if voice_embedding else None
-        )
+        # API simplificada de Chatterbox
+        audio = model.synthesize(text=text)
         
-        # Convierte a base64 para RunPod
+        # Base64 para RunPod
         buffer = BytesIO()
-        sf.write(buffer, wav.cpu().numpy(), model.sr, format='WAV')
+        sf.write(buffer, audio, 24000, format='WAV')
         audio_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
         
         print("✅ TTS generado!")
@@ -88,11 +74,4 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         print(f"❌ Error: {traceback.format_exc()}")
         return {"error": str(e)}
 
-if __name__ == "__main__":
-    import sys
-    print(f"🐍 Python version: {sys.version}")
-    print(f"🐍 Python executable: {sys.executable}")
-    print("✅ Handler listo!")
-
-# RunPod Serverless entrypoint
 runpod.serverless.start({"handler": handler})
