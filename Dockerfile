@@ -8,23 +8,22 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Torch compatible CUDA 12.2 primero
-RUN pip install --no-cache-dir \
+# Torch + hf_transfer primero
+RUN pip install --no-cache-dir hf_transfer \
     torch torchaudio --index-url https://download.pytorch.org/whl/cu121
 
-COPY . /app
+COPY . /app/
 
-# FIX: Instala hf_transfer + deps
-RUN pip install --no-cache-dir \
-    hf_transfer \
+# Instala todo con python3.11 explícito
+RUN python3.11 -m pip install --no-cache-dir \
     runpod \
     soundfile librosa numpy requests pydantic \
-    "huggingface_hub[hf_transfer]" \
+    huggingface_hub \
     "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox.git"
 
-# Deshabilita solo si no quieres hf_transfer (pero mejor usarlo para velocidad)
 ENV HF_HUB_ENABLE_HF_TRANSFER=1
 
 EXPOSE 4123
 
-CMD ["python", "handler.py"]
+# FIX: Usa python3.11 explícito
+CMD ["python3.11", "-u", "handler.py"]

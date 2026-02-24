@@ -88,5 +88,11 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         print(f"❌ Error: {traceback.format_exc()}")
         return {"error": str(e)}
 
+if __name__ == "__main__":
+    import sys
+    print(f"🐍 Python version: {sys.version}")
+    print(f"🐍 Python executable: {sys.executable}")
+    print("✅ Handler listo!")
+
 # RunPod Serverless entrypoint
 runpod.serverless.start({"handler": handler})
