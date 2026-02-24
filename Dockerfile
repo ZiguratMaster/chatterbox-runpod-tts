@@ -1,26 +1,22 @@
-FROM python:3.11-slim
+FROM nvidia/cuda:12.2.0-runtime-ubuntu22.04
 
-# Instala CUDA runtime mínimo (no devel/full)
+# Instala Python 3.11 + deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-dev \
+    python3.11-distutils \
+    python3-pip \
     ffmpeg \
     libsndfile1 \
     git \
-    wget \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Instala CUDA 12.2 runtime
-RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
-    && dpkg -i cuda-keyring_1.1-1_all.deb \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends cuda-runtime-12-2 \
-    && rm -rf /var/lib/apt/lists/* cuda-keyring_1.1-1_all.deb
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/bin/python3.11 /usr/bin/python
 
 WORKDIR /app
 COPY . /app/
 
-# Tu pip install exacto (está bien)
-RUN python3.11 -m pip install --no-cache-dir \
+# Tu pip install (perfecto)
+RUN python -m pip install --no-cache-dir \
     hf_transfer \
     --extra-index-url https://download.pytorch.org/whl/cu121 \
     torch torchaudio \
@@ -30,7 +26,7 @@ RUN python3.11 -m pip install --no-cache-dir \
     "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox.git"
 
 ENV HF_HUB_ENABLE_HF_TRANSFER=1
-ENV CUDA_VISIBLE_DEVICES=all
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE 4123
-CMD ["python3.11", "-u", "handler.py"]
+CMD ["python", "-u", "handler.py"]
